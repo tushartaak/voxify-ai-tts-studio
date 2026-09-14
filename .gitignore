@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production builds
+client/dist/
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+server/.env
+client/.env
+
+# Google Cloud Service Account Credentials
+credentials/*
+!credentials/.gitkeep
+!credentials/README.md
+server/credentials/*
+!server/credentials/.gitkeep
+!server/credentials/README.md
+*service-account*.json
+google-credentials*.json
+*.key.json
+*.json.key
+
+# Temporary audio storage
+server/temp/*
+!server/temp/.gitkeep
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/

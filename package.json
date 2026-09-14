@@ -1,0 +1,28 @@
+{
+  "name": "voxify-ai-tts-studio",
+  "version": "1.0.0",
+  "description": "Voxify – AI Text-to-Speech Studio web application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,magenta\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "client": "npm run dev --prefix client",
+    "server": "npm run dev --prefix server",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server",
+    "test": "npm run test --prefix server && npm run test --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "keywords": [
+    "text-to-speech",
+    "tts",
+    "react",
+    "express",
+    "web-speech-api",
+    "web-audio"
+  ],
+  "author": "Internship Project",
+  "license": "MIT"
+}
