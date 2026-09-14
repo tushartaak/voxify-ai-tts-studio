@@ -5,6 +5,15 @@
 
 ---
 
+### 🌐 Live Public Deployment
+* **Live Web App:** [https://tushartaak.github.io/voxify-ai-tts-studio/](https://tushartaak.github.io/voxify-ai-tts-studio/)
+* **Direct Studio Access:** [https://tushartaak.github.io/voxify-ai-tts-studio/studio](https://tushartaak.github.io/voxify-ai-tts-studio/studio)
+* **GitHub Repository:** [https://github.com/tushartaak/voxify-ai-tts-studio](https://github.com/tushartaak/voxify-ai-tts-studio)
+* **Automated CI/CD:** Continuous Deployment via GitHub Actions workflow (`.github/workflows/deploy.yml`)
+* **Cost & Billing:** 100% Free forever • Zero API keys • Zero cloud credentials • Zero tracking
+
+---
+
 ## 1. Project Title
 **Voxify – AI Text-to-Speech Studio**
 
