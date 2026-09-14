@@ -11,8 +11,13 @@ import { useTTS } from './hooks/useTTS';
 export function App() {
   const ttsState = useTTS();
 
+  const basename =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/voxify-ai-tts-studio')
+      ? '/voxify-ai-tts-studio'
+      : '/';
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <div className="min-h-screen flex flex-col bg-navy-950 text-slate-100 selection:bg-brand-500 selection:text-white">
         {/* Global Navigation */}
         <Navbar serverStatus={ttsState.serverStatus} />
