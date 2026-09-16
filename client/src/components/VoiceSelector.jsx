@@ -12,7 +12,7 @@ export const VoiceSelector = ({
 }) => {
   const [previewingVoice, setPreviewingVoice] = useState(null);
 
-  const selectedVoiceObj = availableVoices.find((v) => v.name === voice);
+  const selectedVoiceObj = availableVoices.find((v) => v.name === voice || v.id === voice);
 
   // Quick vocal preview using browser speech synthesis
   const handlePreview = (voiceItem) => {
@@ -52,7 +52,7 @@ export const VoiceSelector = ({
         </label>
         {selectedVoiceObj && (
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-brand-300 border border-slate-750">
-            {selectedVoiceObj.localService ? 'Local/Offline' : 'Remote'} • {selectedVoiceObj.lang}
+            {selectedVoiceObj.localService ? 'Local/Offline' : 'Remote'} • {selectedVoiceObj.languageCode || selectedVoiceObj.lang}
           </span>
         )}
       </div>
@@ -73,7 +73,7 @@ export const VoiceSelector = ({
             <option value="">No installed browser voice is available for this language.</option>
           ) : (
             availableVoices.map((v) => (
-              <option key={v.name} value={v.name} className="bg-navy-900 text-slate-100 py-1">
+              <option key={v.id} value={v.name} className="bg-navy-900 text-slate-100 py-1">
                 {v.name} ({v.lang}) {v.default ? '— [Default]' : ''}
               </option>
             ))

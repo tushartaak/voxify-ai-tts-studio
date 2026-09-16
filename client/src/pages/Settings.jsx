@@ -26,7 +26,7 @@ export const Settings = ({ serverStatus, onRefreshStatus }) => {
 
   useEffect(() => {
     const loadVoices = () => {
-      setBrowserVoices(browserSpeechService.getVoices());
+      setBrowserVoices(browserSpeechService.getAvailableVoices());
     };
     loadVoices();
     const unsubscribe = browserSpeechService.onVoicesChanged((voices) => {
@@ -208,7 +208,7 @@ export const Settings = ({ serverStatus, onRefreshStatus }) => {
         ) : (
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-850 rounded-xl bg-slate-950/50 border border-slate-850">
             {filteredVoices.slice(0, 50).map((v, idx) => (
-              <div key={`${v.name}-${v.lang}-${idx}`} className="p-3 flex items-center justify-between text-xs hover:bg-slate-900/50 transition-colors">
+              <div key={v.id || `${v.name}-${v.lang}-${idx}`} className="p-3 flex items-center justify-between text-xs hover:bg-slate-900/50 transition-colors">
                 <div className="flex items-center gap-2.5 truncate">
                   <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center text-[10px] font-mono flex-shrink-0">
                     {idx + 1}
@@ -223,7 +223,7 @@ export const Settings = ({ serverStatus, onRefreshStatus }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-slate-400 flex-shrink-0 font-mono text-[11px]">
-                  <span>{v.lang}</span>
+                  <span>{v.languageCode || v.lang}</span>
                   <span>•</span>
                   <span>{v.localService ? 'Local/Offline' : 'Network'}</span>
                 </div>

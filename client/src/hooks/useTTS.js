@@ -1,18 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import browserSpeechService from '../services/browserSpeechService';
 import { checkHealth } from '../services/api';
+import {
+  CURATED_LANGUAGES,
+  buildLanguageList,
+  getVoicesForLanguage,
+  generateVoiceDiagnostics
+} from '../services/voiceService';
 
-export const SUPPORTED_LANGUAGES = [
-  { code: 'en-US', name: 'English (United States)', flag: '🇺🇸' },
-  { code: 'en-IN', name: 'English (India)', flag: '🇮🇳' },
-  { code: 'en-GB', name: 'English (United Kingdom)', flag: '🇬🇧' },
-  { code: 'hi-IN', name: 'Hindi (भारत)', flag: '🇮🇳' },
-  { code: 'gu-IN', name: 'Gujarati (ગુજરાત)', flag: '🇮🇳' },
-  { code: 'mr-IN', name: 'Marathi (महाराष्ट्र)', flag: '🇮🇳' },
-  { code: 'es-ES', name: 'Spanish (España)', flag: '🇪🇸' },
-  { code: 'fr-FR', name: 'French (France)', flag: '🇫🇷' },
-  { code: 'de-DE', name: 'German (Deutschland)', flag: '🇩🇪' }
-];
+export const SUPPORTED_LANGUAGES = CURATED_LANGUAGES;
 
 export function useTTS() {
   // Input text state
@@ -92,7 +88,7 @@ export function useTTS() {
     refreshServerStatus();
   }, [refreshServerStatus]);
 
-  // Load genuine browser voices via window.speechSynthesis
+  // Load genuine normalized browser voices via window.speechSynthesis
   useEffect(() => {
     if (!browserSpeechService.isSupported()) {
       setLoadingVoices(false);
@@ -101,7 +97,7 @@ export function useTTS() {
     }
 
     const updateVoices = (voices) => {
-      const loaded = voices || browserSpeechService.getVoices();
+      const loaded = voices || browserSpeechService.getAvailableVoices();
       setAllBrowserVoices(loaded);
       setLoadingVoices(false);
       setServerStatus((prev) => ({
@@ -112,7 +108,7 @@ export function useTTS() {
     };
 
     // Initial fetch
-    updateVoices(browserSpeechService.getVoices());
+    updateVoices(browserSpeechService.getAvailableVoices());
 
     // Listen for asynchronous onvoiceschanged event
     const unsubscribe = browserSpeechService.onVoicesChanged((voices) => {
@@ -124,55 +120,37 @@ export function useTTS() {
     };
   }, []);
 
-  // Filter available voices for selected language
+  // Single Authoritative Filtering: available voices for selected language
   const availableVoices = useMemo(() => {
-    if (!language || allBrowserVoices.length === 0) return [];
-    const cleanLang = language.toLowerCase();
-    const prefix = cleanLang.split('-')[0];
+    return getVoicesForLanguage(allBrowserVoices, language, voice);
+  }, [language, allBrowserVoices, voice]);
 
-    // Priority 1: Exact language match (e.g. en-US)
-    const exact = allBrowserVoices.filter(
-      (v) => (v.lang || '').toLowerCase().replace(/_/g, '-') === cleanLang
-    );
-    if (exact.length > 0) return exact;
-
-    // Priority 2: Prefix match (e.g. en)
-    return allBrowserVoices.filter((v) =>
-      (v.lang || '').toLowerCase().startsWith(prefix)
-    );
-  }, [language, allBrowserVoices]);
-
-  // Available languages: show all supported, but highlight ones with installed voices
+  // Authoritative language list with accurate counts derived from getVoicesForLanguage
   const languagesWithVoices = useMemo(() => {
-    return SUPPORTED_LANGUAGES.map((lang) => {
-      const clean = lang.code.toLowerCase();
-      const prefix = clean.split('-')[0];
-      const matchCount = allBrowserVoices.filter((v) => {
-        const vl = (v.lang || '').toLowerCase().replace(/_/g, '-');
-        return vl === clean || vl.startsWith(prefix);
-      }).length;
-      return {
-        ...lang,
-        installedVoicesCount: matchCount,
-        hasInstalledVoice: matchCount > 0
-      };
-    });
+    return buildLanguageList(allBrowserVoices, CURATED_LANGUAGES);
   }, [allBrowserVoices]);
 
-  // Auto-select first voice when language changes or voices load
+  // Development verification: assert that language count strictly equals filtered voices
+  useEffect(() => {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production' && allBrowserVoices.length > 0) {
+      generateVoiceDiagnostics(allBrowserVoices, languagesWithVoices);
+    }
+  }, [allBrowserVoices, languagesWithVoices]);
+
+  // Auto-select or preserve voice when language changes or voices load
   useEffect(() => {
     if (availableVoices.length > 0) {
-      // If currently selected voice is in available voices, keep it
-      const currentExists = availableVoices.some((v) => v.name === voice);
+      // If currently selected voice is still present in available voices, keep it
+      const currentExists = availableVoices.some((v) => v.name === voice || v.id === voice);
       if (!currentExists) {
-        // Default to first available voice or one marked default
+        // Priority: genuine system default voice for this language, otherwise first voice
         const defaultVoice = availableVoices.find((v) => v.default) || availableVoices[0];
         setVoice(defaultVoice.name);
       }
     } else {
       setVoice('');
     }
-  }, [language, availableVoices]);
+  }, [availableVoices, voice]);
 
   // Handle changing language
   const handleLanguageChange = (newLang) => {

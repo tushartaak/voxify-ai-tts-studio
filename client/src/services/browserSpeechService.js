@@ -1,3 +1,5 @@
+import { normalizeVoice, normalizeLocale } from './voiceService';
+
 /**
  * Browser-Native Web Speech API Service for Voxify
  * Completely free, local, private, and runs without any cloud or third-party APIs.
@@ -9,14 +11,22 @@ class BrowserSpeechService {
     this.currentUtterance = null;
     this.keepAliveInterval = null;
     this.voiceListeners = new Set();
+    this._debounceTimer = null;
 
     if (this.synth) {
-      // Listen for voices changed event (supported across modern browsers)
-      if (typeof this.synth.onvoiceschanged !== 'undefined') {
-        this.synth.onvoiceschanged = () => {
+      const handleVoicesChanged = () => {
+        if (this._debounceTimer) clearTimeout(this._debounceTimer);
+        this._debounceTimer = setTimeout(() => {
           this.notifyVoiceListeners();
-        };
+        }, 50);
+      };
+
+      // Listen for voices changed event using addEventListener if available
+      if (typeof this.synth.addEventListener === 'function') {
+        this.synth.addEventListener('voiceschanged', handleVoicesChanged);
       }
+      // Also attach to onvoiceschanged for older browser implementations
+      this.synth.onvoiceschanged = handleVoicesChanged;
     }
   }
 
@@ -28,11 +38,19 @@ class BrowserSpeechService {
   }
 
   /**
-   * Get all currently available and installed speech synthesis voices
+   * Get all currently available raw speech synthesis voices from browser
    */
   getVoices() {
     if (!this.synth) return [];
     return this.synth.getVoices() || [];
+  }
+
+  /**
+   * Get all available voices normalized with structured metadata
+   */
+  getAvailableVoices() {
+    const rawVoices = this.getVoices();
+    return rawVoices.map((v, i) => normalizeVoice(v, i));
   }
 
   /**
@@ -43,7 +61,7 @@ class BrowserSpeechService {
     this.voiceListeners.add(callback);
 
     // If voices are already populated, trigger immediately
-    const initialVoices = this.getVoices();
+    const initialVoices = this.getAvailableVoices();
     if (initialVoices.length > 0) {
       try {
         callback(initialVoices);
@@ -58,7 +76,7 @@ class BrowserSpeechService {
   }
 
   notifyVoiceListeners() {
-    const voices = this.getVoices();
+    const voices = this.getAvailableVoices();
     this.voiceListeners.forEach((cb) => {
       try {
         cb(voices);
@@ -103,25 +121,34 @@ class BrowserSpeechService {
     const utterance = new window.SpeechSynthesisUtterance(trimmed);
 
     // 1. Voice Resolution
-    const allVoices = this.getVoices();
-    let selectedVoice = voice;
+    const allNativeVoices = this.getVoices();
+    let nativeVoice = null;
 
-    if (!selectedVoice && voiceName) {
-      selectedVoice = allVoices.find((v) => v.name === voiceName);
+    if (voice) {
+      // If voice is a normalized voice object, extract native voice reference
+      if (voice.voice && typeof voice.voice === 'object') {
+        nativeVoice = voice.voice;
+      } else if (typeof voice === 'object' && voice.name) {
+        nativeVoice = allNativeVoices.find((v) => v.name === voice.name) || voice;
+      }
     }
 
-    if (!selectedVoice && lang) {
-      const cleanLang = lang.toLowerCase();
-      selectedVoice =
-        allVoices.find((v) => v.lang.toLowerCase() === cleanLang) ||
-        allVoices.find((v) => v.lang.toLowerCase().startsWith(cleanLang.split('-')[0]));
+    if (!nativeVoice && voiceName) {
+      nativeVoice = allNativeVoices.find((v) => v.name === voiceName);
     }
 
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-      utterance.lang = selectedVoice.lang || lang;
+    if (!nativeVoice && lang) {
+      const cleanLang = normalizeLocale(lang).toLowerCase();
+      nativeVoice =
+        allNativeVoices.find((v) => normalizeLocale(v.lang).toLowerCase() === cleanLang) ||
+        allNativeVoices.find((v) => normalizeLocale(v.lang).toLowerCase().startsWith(cleanLang.split('-')[0]));
+    }
+
+    if (nativeVoice) {
+      utterance.voice = nativeVoice;
+      utterance.lang = nativeVoice.lang || lang;
     } else {
-      utterance.lang = lang;
+      utterance.lang = normalizeLocale(lang) || lang;
     }
 
     // 2. Audio Parameters (Rate: 0.1 to 10.0, Pitch: 0 to 2.0, Volume: 0 to 1.0)
